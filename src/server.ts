@@ -3,6 +3,7 @@
 //   GET /handover[.html|.txt]?night=YYYY-MM-DD   (night defaults to the latest)
 //   GET /healthz
 
+import 'dotenv/config';
 import express from 'express';
 import { generateHandover } from './pipeline.js';
 import { renderHtml } from './render/html.js';

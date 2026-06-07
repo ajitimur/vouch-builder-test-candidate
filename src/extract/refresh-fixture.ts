@@ -2,6 +2,7 @@
 // Run with a key set: `ANTHROPIC_API_KEY=... npm run extract`. Lets us refresh the
 // cached fallback whenever the prompt/data changes, without a key at request time.
 
+import 'dotenv/config';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';

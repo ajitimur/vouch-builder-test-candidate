@@ -65,6 +65,16 @@ function loadFixture(): LLMResult {
   return { claims, source: 'fixture', model: 'fixture', tokens: { input: 0, output: 0 } };
 }
 
+// CJK Unified Ideographs + common Chinese punctuation. Cheap, deterministic, and
+// good enough to guarantee non-English entries are flagged and their original kept.
+const CJK = /[㐀-鿿豈-﫿　-〿＀-￯]/;
+
+/** Detect language from the verbatim source, falling back to the model's label. */
+export function detectLang(originalText: string, modelLang: string | undefined): string {
+  if (CJK.test(originalText)) return 'zh';
+  return modelLang && modelLang.trim() ? modelLang : 'en';
+}
+
 /** Deterministically turn raw model claims into grounded Claim[]. Shared by live + fixture. */
 export function buildClaims(
   rawClaims: RawLLMClaim[],
@@ -83,10 +93,14 @@ export function buildClaims(
     }
     const originalText = file.lines.slice(start - 1, end).join('\n').trim();
     const sourceRef = start === end ? `night-log:L${start}` : `night-log:L${start}-L${end}`;
+    // Don't trust the model for language: detect non-English from the verbatim
+    // source so the original is always preserved and flagged, even if the model
+    // labels a translated Chinese line as "en".
+    const lang = detectLang(originalText, rc.lang);
 
     const flags: ClaimFlag[] = [];
     if (rc.isInstructionToSystem || detectInjection(originalText)) flags.push('prompt_injection');
-    if (rc.lang && rc.lang.toLowerCase() !== 'en') flags.push('non_english');
+    if (lang.toLowerCase() !== 'en') flags.push('non_english');
     if (rc.issueKeyConfidence < 0.7) flags.push('low_confidence_merge');
 
     claims.push({
@@ -102,7 +116,7 @@ export function buildClaims(
       statusSignal: rc.statusSignal,
       summary: rc.summary.trim(),
       originalText,
-      lang: rc.lang || 'en',
+      lang,
       flags,
     });
   });
