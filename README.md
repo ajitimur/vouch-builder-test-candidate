@@ -9,6 +9,21 @@ papered over.
 See [`BRIEF.md`](BRIEF.md) for the task and [`DECISIONS.md`](DECISIONS.md) for the
 design rationale and tradeoffs. Architecture and rules live in [`CLAUDE.md`](CLAUDE.md).
 
+## Live demo
+
+Deployed on Railway: **https://vouch-test-production.up.railway.app**
+
+```bash
+# Plain-text handover for the morning of 2026-05-30 (most recent shift)
+curl 'https://vouch-test-production.up.railway.app/handover.txt?night=2026-05-30'
+
+# JSON (handover + structured debug log) — or open /handover.html in a browser
+curl 'https://vouch-test-production.up.railway.app/handover?night=2026-05-30'
+```
+
+`night` is optional (defaults to the latest shift). The first call after the service idles,
+and any live call, takes a few seconds — free-text extraction runs the LLM per request.
+
 ## Run locally
 
 ```bash
