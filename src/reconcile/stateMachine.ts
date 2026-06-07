@@ -3,6 +3,16 @@
 // the thread stands. Contradictions are detected and surfaced, never collapsed.
 
 import type { Claim, ThreadState } from '../types.js';
+import { daysBetween } from '../config.js';
+
+// A thread is "gone quiet" only once it has had no update for at least this many
+// days before the target morning. One-night-old open items are normal carryover,
+// not gaps — flagging them would drown the review footer in noise.
+const GAP_DAYS = 2;
+
+function isGap(latestNight: string, targetMorning: string): boolean {
+  return latestNight < targetMorning && daysBetween(latestNight, targetMorning) >= GAP_DAYS;
+}
 
 /** Sort a thread's claims oldest-first; stable on id for determinism. */
 export function orderClaims(claims: Claim[]): Claim[] {
@@ -32,7 +42,7 @@ export function classify(claims: Claim[], targetMorning: string): { state: Threa
   const latest = ordered[ordered.length - 1];
 
   if (isContradiction(ordered)) {
-    return { state: 'contradiction', gap: latest.night < targetMorning };
+    return { state: 'contradiction', gap: isGap(latest.night, targetMorning) };
   }
 
   if (latest.statusSignal === 'resolved') {
@@ -42,7 +52,7 @@ export function classify(claims: Claim[], targetMorning: string): { state: Threa
 
   // Still live.
   const state: ThreadState = earliest === targetMorning ? 'new_tonight' : 'still_open';
-  // An unresolved thread whose most recent activity predates the target morning
-  // has gone quiet — flag it so nothing silently rots.
-  return { state, gap: latest.night < targetMorning };
+  // An unresolved thread that has gone quiet for >= GAP_DAYS — flag it so nothing
+  // silently rots.
+  return { state, gap: isGap(latest.night, targetMorning) };
 }
