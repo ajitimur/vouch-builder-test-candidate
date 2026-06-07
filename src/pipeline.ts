@@ -50,8 +50,13 @@ export async function generateHandover(opts: { night?: string } = {}): Promise<P
     nightLogLines: nightLog.lines.length,
   });
 
+  // A handover for a given morning may only use information known by then: drop
+  // claims from nights *after* the target so historical queries don't time-travel
+  // (e.g. asking for 2026-05-28 must not show a leak "resolved" on the 29th).
+  const inWindow = valid.filter((c) => c.night <= targetMorning);
+
   // Stage 2: reconcile into threads.
-  const threads = reconcile(valid, targetMorning);
+  const threads = reconcile(inWindow, targetMorning);
 
   // Stage 4: render buckets.
   const buckets = assignBuckets(threads, targetMorning);

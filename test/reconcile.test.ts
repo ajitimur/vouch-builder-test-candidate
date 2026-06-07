@@ -45,6 +45,18 @@ describe('end-to-end reconciliation across sources', () => {
     expect(t?.claims.map((c) => c.sourceRef)).toEqual(['evt_0010', 'night-log:L19', 'evt_0012']);
   });
 
+  it('does not let future nights leak into a historical handover', async () => {
+    // On the morning of the 28th, the 312 dispute (evt_0012, 29th) and the leak
+    // resolution (evt_0013, 29th) have not happened yet.
+    const { threads } = await generateHandover({ night: '2026-05-28' });
+    const refs = threads.flatMap((t) => t.claims.map((c) => c.sourceRef));
+    expect(refs).not.toContain('evt_0012');
+    expect(refs).not.toContain('evt_0013');
+    // ...so 312 is not yet a contradiction, and the leak is still open.
+    expect(threads.find((t) => t.issueKey === 'room-312-charge')?.state).not.toBe('contradiction');
+    expect(threads.find((t) => t.issueKey === 'room-215-facilities')?.state).toBe('still_open');
+  });
+
   it('keeps the 309 deposit open across three nights and routes it to Act Now', async () => {
     const { threads, handover } = await generateHandover({ night: '2026-05-30' });
     const t = threads.find((x) => x.issueKey === 'room-309-deposit');

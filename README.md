@@ -1,12 +1,64 @@
-# Vouch Builder Take-Home
+# Night-Shift Handover Service — Lumen Boutique Hotel
 
-Welcome — thanks for taking the time.
+Generates an **action-first, fully grounded** morning handover from two inputs:
+structured front-desk events (`data/events.json`) and a free-text relief-staff night
+log (`data/night-logs.md`, partly non-English). Every line traces back to a source
+reference; contradictions, prompt-injection attempts, and gaps are flagged, not
+papered over.
 
-**Start here:** read [`BRIEF.md`](BRIEF.md). It describes the task, what to build,
-and how to submit.
+See [`BRIEF.md`](BRIEF.md) for the task and [`DECISIONS.md`](DECISIONS.md) for the
+design rationale and tradeoffs. Architecture and rules live in [`CLAUDE.md`](CLAUDE.md).
 
-Your sample data is in [`data/`](data/):
-- `events.json` — structured front-desk events
-- `night-logs.md` — one night logged as free text
+## Run locally
 
-Timebox is ~2 hours. We're looking for sharp tradeoffs, not completeness. Good luck.
+```bash
+npm install
+npm run dev          # starts on http://localhost:3000
+```
+
+```bash
+# JSON (handover + structured log)
+curl 'http://localhost:3000/handover?night=2026-05-30'
+
+# Human-readable views
+curl 'http://localhost:3000/handover.txt?night=2026-05-30'
+open  'http://localhost:3000/handover.html?night=2026-05-30'   # or just visit /
+```
+
+`night` is optional and defaults to the most recent shift morning in the data.
+
+```bash
+npm test             # reconciliation + grounding + injection-containment tests
+```
+
+## The LLM
+
+The free-text night log is parsed by `claude-haiku-4-5` (temperature 0, forced tool
+schema) — it only **extracts/translates/clusters** claims that cite line numbers; it
+never writes the handover or decides resolution. Set `ANTHROPIC_API_KEY` to use a live
+call; without it (or on an API error) the service falls back to a committed extraction
+fixture so the endpoint stays deterministic and never hard-fails. Re-generate the
+fixture from a live call with `ANTHROPIC_API_KEY=... npm run extract`.
+
+## Pipeline
+
+```
+extract ─► validate (drop unsourced) ─► reconcile (state machine) ─► render (buckets)
+```
+
+- 🔴 **Act Now** — deadlines, safety/health, unsettled exposure before checkout
+- 🟡 **Pending** — open, no same-day urgency
+- ℹ️ **FYI** — resolved / informational
+- ⚠ **Flagged for review** — contradictions, prompt-injection (verbatim), low-confidence
+  merges, gaps with no recent update
+
+## Deploy
+
+The service is a plain Node/Express app (no build step — runs via `tsx`). It listens on
+`$PORT`. A `Dockerfile` is included; it deploys as-is to Railway / Render / Fly:
+
+```bash
+# example (Railway)
+railway up
+curl 'https://<your-deployment>/handover?night=2026-05-30'
+```
