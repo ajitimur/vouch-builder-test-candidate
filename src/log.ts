@@ -31,6 +31,7 @@ export interface HandoverLog {
 }
 
 export function emitLog(log: HandoverLog): void {
+  if (process.env.VITEST) return; // keep test output readable
   // Flat keys up front make `grep hotelId=... night=...` trivial in aggregated logs.
   console.log(
     `hotelId=${log.hotelId} night=${log.targetMorning} ` + JSON.stringify(log),
