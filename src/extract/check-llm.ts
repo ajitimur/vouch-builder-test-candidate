@@ -77,8 +77,8 @@ if (!langs.has('zh')) warn.push('no Chinese entries detected — the zh lines (L
 const linked = claims.filter((c) => eventKeys.has(c.issueKey)).length;
 if (linked < 3) warn.push(`only ${linked} claim(s) mapped onto existing event threads — cross-source reconciliation may be weak`);
 
-// Diff against the committed fixture (by sourceRef -> issueKey).
-const fixture = JSON.parse(readFileSync(FIXTURE, 'utf8')) as RawLLMClaim[];
+// Diff against the committed cache (by sourceRef -> issueKey).
+const fixture = (JSON.parse(readFileSync(FIXTURE, 'utf8')) as { claims: RawLLMClaim[] }).claims;
 const fixByRange = new Map(fixture.map((c) => [`${c.lineStart}-${c.lineEnd}`, c]));
 const diffs: string[] = [];
 for (const c of raw) {

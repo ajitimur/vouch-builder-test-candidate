@@ -72,8 +72,9 @@ function flaggedLine(thread: IssueThread): RenderedLine {
       .join('');
     return { text: `Contradiction — ${label(thread)} (needs review, not auto-resolved):${sides}`, sourceRefs: allRefs(thread) };
   }
-  // Gap / low-confidence merge.
+  // Incomplete / gap / low-confidence merge.
   const reasons: string[] = [];
+  if (thread.flags.includes('incomplete')) reasons.push('incomplete — proposed action lacks required substantiation (e.g. photos / manager approval)');
   if (thread.gap) reasons.push(`no update since ${latest(thread).night}`);
   if (thread.flags.includes('low_confidence_merge')) reasons.push(`low-confidence thread mapping (${latest(thread).issueKeyConfidence}), not auto-merged`);
   return { text: withOriginal(`${label(thread)} — ${reasons.join('; ')}: ${latest(thread).summary}`, thread), sourceRefs: allRefs(thread) };
@@ -90,8 +91,8 @@ export function assignBuckets(threads: IssueThread[], targetMorning: string): Bu
     const injection = t.flags.includes('prompt_injection');
     const contradiction = t.state === 'contradiction';
 
-    // Footer: contradictions, injection, gaps, low-confidence merges.
-    if (injection || contradiction || t.gap || t.flags.includes('low_confidence_merge')) {
+    // Footer: contradictions, injection, incomplete entries, gaps, low-confidence merges.
+    if (injection || contradiction || t.gap || t.flags.includes('incomplete') || t.flags.includes('low_confidence_merge')) {
       flagged.push(flaggedLine(t));
     }
 

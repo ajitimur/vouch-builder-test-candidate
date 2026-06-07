@@ -64,6 +64,7 @@ export interface Handover {
   targetMorning: string; // ISO date
   generatedAt: string; // ISO timestamp
   buckets: Bucket[];
+  degraded: boolean; // true if free-text night log could not be processed for this input
 }
 
 // Raw shape of data/events.json

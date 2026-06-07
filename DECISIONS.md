@@ -51,6 +51,21 @@ thread across nights and both sources, e.g. the 309 deposit (`evt_0007` → `nig
 - **Stopping the model inventing facts.** The LLM runs at temperature 0 with a forced
   tool schema, only *extracts/translates/clusters*, and never decides resolution or writes
   the handover. If a claim cites a line range that doesn't exist, it's dropped.
+- **The cache cannot fabricate against unseen input.** The live LLM is the production
+  path; a committed extraction acts as a fallback only when the model is unavailable. That
+  fallback is **content-addressed** — it stores the SHA-256 of the night log it was built
+  from and is reused *only* if that hash matches the current file (`loadCache` in
+  `nightlogs.ts`). Run it against a night log it wasn't built for and it refuses: the
+  service skips free-text entirely, still renders the structured-events handover, and
+  surfaces a loud footer line ("Free-text night log NOT processed… N lines not analysed").
+  This closes the subtle trap where stale summaries get attached to real-but-wrong line
+  numbers and pass every ref-exists check. A regression test feeds an unseen night log with
+  no key and asserts zero free-text summaries survive.
+- **Incomplete entries.** A consequential action proposed without its required
+  substantiation is flagged `incomplete` and pushed to the review footer — concretely
+  `evt_0023`, room 226: a SGD 500 damage charge with "no photos" and "no manager approval
+  on record". Deterministic and narrow (proposed money movement the text itself admits is
+  missing evidence/sign-off), so it generalises beyond this one row without papering over it.
 - **Contradictions are surfaced, not collapsed.** A `resolved`-then-reopened thread is
   classified `contradiction` and shown with **every side and its source** in the footer —
   e.g. room 312 (`evt_0010` not charged → `night-log:L19` "settled" → `evt_0012` guest
@@ -74,11 +89,21 @@ thread across nights and both sources, e.g. the 309 deposit (`evt_0007` → `nig
   collapses. The whole architecture exists to keep the model on the *extraction* side of a
   hard line and let deterministic code own every decision an operator would be blamed for.
 
+## A tradeoff worth naming
+
+When the LLM is unavailable (no key) **and** the night log differs from the cached one, a
+reviewer gets a structured-events-only handover with a visible "not processed" flag. That
+is the correct outcome — we genuinely cannot read an unseen free-text log without a model,
+and fabricating is the worse failure — but it means the full free-text handling is only on
+display when a key is set (the intended production path) or when running against the
+original sample. I chose loud-and-correct over quiet-and-complete.
+
 ## What I'd do in hours 3–6
 
 - Replace the keyword urgency/safety heuristics with a small, testable rules table per
-  hotel, and add a confidence-scored "needs decision" flag (e.g. the 226 SGD 500 damage
-  charge with no photos / no manager approval).
+  hotel, and make the `incomplete` flag confidence-scored rather than regex-based (the 226
+  damage charge is caught today; I'd generalise the "proposed action missing sign-off"
+  detector and tune its precision).
 - Snapshot prior handovers so "newly_resolved" is computed against what was actually
   reported, not re-derived each run; add idempotency + persistence.
 - A golden-output test over the full sample, and an eval harness for the LLM extractor so

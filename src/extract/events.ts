@@ -10,6 +10,19 @@ import { nightOf } from '../config.js';
 import { canonicalIssueKey } from '../reconcile/issueKey.js';
 import { detectInjection } from '../injection.js';
 
+// A consequential action proposed without the substantiation it needs is an
+// "incomplete entry" the brief wants surfaced for review, not quietly actioned —
+// e.g. evt_0023: a SGD 500 damage charge with "no photos" and "no manager
+// approval on record". Deterministic + narrow: proposed money movement that the
+// text itself admits is missing evidence/sign-off.
+const PROPOSED_ACTION = /\b(propos|charg|fee|deduct|bill|deposit forfeit)/i;
+const MISSING_SUBSTANTIATION = /\bno photos?\b|\bno (?:manager )?approval\b|not (?:yet )?approved|without approval|no (?:manager )?sign-?off|no evidence|approval[^.]*\b(?:not|pending)\b/i;
+
+function detectIncomplete(description: string, status: string): boolean {
+  if (status === 'resolved') return false;
+  return PROPOSED_ACTION.test(description) && MISSING_SUBSTANTIATION.test(description);
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_PATH = resolve(__dirname, '../../data/events.json');
 
@@ -34,6 +47,7 @@ export function extractEventClaims(file: RawEventsFile): Claim[] {
   return file.events.map((e: RawEvent, i): Claim => {
     const flags: ClaimFlag[] = [];
     if (detectInjection(e.description)) flags.push('prompt_injection');
+    if (detectIncomplete(e.description, e.status)) flags.push('incomplete');
 
     return {
       id: `claim_evt_${String(i + 1).padStart(3, '0')}`,

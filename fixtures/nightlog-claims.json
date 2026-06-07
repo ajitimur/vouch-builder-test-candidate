@@ -1,4 +1,9 @@
-[
+{
+  "sourceHash": "1b681d2d05c337ba77c76ab5293b2c8820027533d7666225ad9535ceaa4b6a69",
+  "generatedAt": "2026-06-07T00:00:00Z",
+  "model": "hand-authored-oracle",
+  "_note": "Content-addressed cache of stage-1b extraction for data/night-logs.md. Used as a fallback only when the live LLM is unavailable AND sourceHash matches the current file. Regenerate with `npm run extract`.",
+  "claims": [
   {
     "lineStart": 11,
     "lineEnd": 11,
@@ -103,4 +108,5 @@
     "issueKeyConfidence": 0.9,
     "isInstructionToSystem": false
   }
-]
+  ]
+}

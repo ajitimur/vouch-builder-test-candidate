@@ -35,10 +35,16 @@ npm test             # reconciliation + grounding + injection-containment tests
 
 The free-text night log is parsed by `claude-haiku-4-5` (temperature 0, forced tool
 schema) — it only **extracts/translates/clusters** claims that cite line numbers; it
-never writes the handover or decides resolution. Set `ANTHROPIC_API_KEY` to use a live
-call; without it (or on an API error) the service falls back to a committed extraction
-fixture so the endpoint stays deterministic and never hard-fails. Re-generate the
-fixture from a live call with `ANTHROPIC_API_KEY=... npm run extract`.
+never writes the handover or decides resolution. Set `ANTHROPIC_API_KEY` (e.g. in `.env`)
+to use a live call.
+
+Without a key (or on an API error) the service falls back to a **content-addressed cache**
+(`fixtures/nightlog-claims.json`) — but only if its stored hash matches the current
+`night-logs.md`. Against an unseen night log the cache is refused, the free-text stage is
+skipped, and the handover is rendered from structured events with a visible "not processed"
+flag — never with stale summaries pinned to the wrong lines. Refresh the cache from a live
+call with `ANTHROPIC_API_KEY=... npm run extract`, and verify the live path with
+`npm run check:llm`.
 
 ## Pipeline
 

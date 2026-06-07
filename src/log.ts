@@ -22,8 +22,9 @@ export interface HandoverLog {
     flagsRaised: number;
   };
   flags: FlagDetail[];
+  degraded: boolean; // free-text night log not processed for this input
   llm: {
-    source: 'llm' | 'fixture';
+    source: 'llm' | 'cache' | 'unavailable';
     model: string;
     tokens: { input: number; output: number };
     extractionConfidenceMean: number;
